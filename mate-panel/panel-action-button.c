@@ -708,6 +708,51 @@ panel_action_button_style_updated (PanelActionButton *button)
 }
 
 static void
+panel_action_button_size_reallocate(GtkWidget *widget, GtkAllocation *allocation, gpointer data) {
+  
+  	PanelWidget *panel = (PanelWidget *) data;
+  	PanelActionButton *button =  (PanelActionButton *) widget;
+  	gboolean change = FALSE;
+
+	if (panel->orient == GTK_ORIENTATION_HORIZONTAL) {
+	
+		if ( allocation->height > 50 ) {
+
+			int ratio = allocation->width / allocation->height;
+			allocation->width = 50;	
+			gtk_widget_size_allocate (GTK_WIDGET (button), allocation);
+			change = TRUE;
+		}
+	
+	} else {
+	
+		if ( allocation->width > 50 ) {
+
+			int ratio = allocation->width / allocation->height;
+			allocation->height = 50;	
+			gtk_widget_size_allocate (GTK_WIDGET (button), allocation);
+			change = TRUE;
+		}
+	
+	
+	}
+
+	/*
+	* The above code works and resizes the buttons when width or height is too big
+	* But the resize is somehow on the button and not the applet itself (or the gap is kept somewhere else?)
+	* The below code was a try to resize the applet, but it doesn't change anything
+	* TODO: I don't know how to trigger changes in size of the applet directly?
+	*/
+	if ( change == TRUE ) {
+
+		size_change (button->priv->info, panel);
+		back_change (button->priv->info, panel);
+
+	}
+
+}
+
+static void
 panel_action_button_load (PanelActionButtonType  type,
 			  PanelWidget           *panel,
 			  gboolean               locked,
@@ -739,6 +784,9 @@ panel_action_button_load (PanelActionButtonType  type,
 
 	panel_widget_set_applet_expandable (panel, GTK_WIDGET (button), FALSE, TRUE);
 	panel_widget_set_applet_size_constrained (panel, GTK_WIDGET (button), TRUE);
+
+	/* change the size if too big */
+	g_signal_connect(GTK_WIDGET (button), "size-allocate", G_CALLBACK(panel_action_button_size_reallocate), panel);
 
 	if (actions [button->priv->type].setup_menu)
 		actions [button->priv->type].setup_menu (button);
